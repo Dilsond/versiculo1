@@ -3,9 +3,22 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, Animated, Image, Di
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useProducts } from './dp';
-import useCart from './yh';  // Importando o novo hook
+import useCart from './yh';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Config from '../../Config';
+import { fetchWithToken } from '../../api'; 
 
 const { width } = Dimensions.get('window');
+
+interface UserData {
+  id: number;
+  nome: string;
+  email: string;
+  numero_telefone: string;
+  endereco: string;
+  status: string;
+  foto:string;
+}
 
 const HomeScreen = () => {
   const navigation = useNavigation();
@@ -14,6 +27,15 @@ const HomeScreen = () => {
   const footerAnimation = useRef(new Animated.Value(1)).current;
   const { products, toggleFavorite, toggleBookmark } = useProducts();
   const { cartItems, toggleCart } = useCart();
+
+  const [produtos, setProdutos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [profileImage, setProfileImage] = useState(null);
+
+  const [categorias, setCategorias] = useState([]);
+  const baseUrl = Config.getApiUrl();
 
   const banners = [
     {
@@ -32,7 +54,23 @@ const HomeScreen = () => {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef(null);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const asyncdata = await AsyncStorage.getItem('userData');
+      if (asyncdata) {
+        const userData = JSON.parse(asyncdata);
+        setUserData(userData);
 
+        if (userData.profile_image) {
+          setProfileImage(`${baseUrl}${userData.profile_image}`);
+        }
+      }
+    };
+
+    fetchUserData();
+    
+  }, []);
+  console.log(userData);
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % banners.length);
@@ -71,7 +109,8 @@ const HomeScreen = () => {
         <Text style={styles.headertext}>Explore</Text>
         <TouchableOpacity onPress={() => navigation.navigate('PerfilScreen')}>
           <Image
-            source={require('../../../assets/images/WhatsApp Image 2024-09-29 at 10.14.59.jpeg')}
+            source={{ uri: userData?.foto ? baseUrl + userData.foto : 'defaultAvatarUrl' }} 
+
             style={styles.avatar}
           />
         </TouchableOpacity>
@@ -112,6 +151,43 @@ const HomeScreen = () => {
     </>
   );
 
+  const renderProduct = ({ item }) => (
+    <View style={styles.productCard}>
+      <View style={styles.cardHeader}>
+        <TouchableOpacity>
+          <MaterialCommunityIcons name="message" size={24} color="#888" onPress={() =>
+            navigation.navigate('ChatScreenWithoutChatroom', {
+              productId: item.id,
+              sellerName: item.usuario?.nome,
+              userId: userData?.id,
+            })
+          } />
+        </TouchableOpacity>
+        <Text style={styles.productName}>{item.nome}</Text>
+        <Text style={styles.productPrice}>{item.data_publicacao}</Text>
+      </View>
+      {item.imagens && item.imagens.length > 0 ? (
+        <Image
+          key={item.imagens[0].id}
+          source={{ uri: baseUrl + item.imagens[0].imagem }}
+          style={styles.productImage}
+        />
+      ) : (
+        <Image
+          source={require('../../../assets/images/12345.jpg')}
+          style={styles.productImage}
+        />
+      )}
+      <View style={styles.priceBadge}>
+        <Text style={styles.priceText}>{item.preco} KZ</Text>
+      </View>
+      <View style={styles.productDetails}>
+        <Text style={styles.detailText}>{item.categoria?.nome}</Text>
+        <Text style={styles.detailText}>{item.condicao}</Text>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -122,41 +198,7 @@ const HomeScreen = () => {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={renderHeader}
-        renderItem={({ item }) => {
-          const isInCart = cartItems.some((cartItem) => cartItem.id === item.id);
-          return (
-            <View style={styles.productCard}>
-              <TouchableOpacity onPress={() => navigation.navigate('DetalheProdutoScreen', { productId: item.id })}>
-                <Image source={item.image} style={styles.productImage} />
-              </TouchableOpacity>
-              <Text style={styles.productName}>{item.name}</Text>
-              <Text style={styles.productPrice}>{item.price}</Text>
-              <View style={styles.iconContainer}>
-                <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
-                  <MaterialCommunityIcons
-                    name={item.favorite ? 'heart' : 'heart-outline'}
-                    size={24}
-                    color={item.favorite ? 'black' : 'black'}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => toggleBookmark(item.id)}>
-                  <MaterialCommunityIcons
-                    name={item.bookmarked ? 'bookmark' : 'bookmark-outline'}
-                    size={24}
-                    color={item.bookmarked ? 'black' : 'black'}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => toggleCart(item)}>
-                  <MaterialCommunityIcons
-                    name={isInCart ? 'cart' : 'cart-plus'}
-                    size={24}
-                    color={isInCart ? 'black' : 'black'}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        }}
+        renderItem={renderProduct}
       />
       {cartItems.length > 0 && (
         <TouchableOpacity
@@ -199,7 +241,6 @@ const styles = StyleSheet.create({
     padding: 15,
     backgroundColor: '#ffffff',
   },
-  userContainer: { flexDirection: 'row', alignItems: 'center' },
   avatar: { width: 40, height: 40, borderRadius: 20 },
   headertext: { fontSize: 24, fontWeight: 'bold' },
   bannerContainer: { height: 200, marginBottom: 20 },
@@ -215,6 +256,11 @@ const styles = StyleSheet.create({
   productName: { fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
   productPrice: { fontSize: 12, color: '#555' },
   iconContainer: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' },
+  priceBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: '#000', padding: 5, borderRadius: 5 },
+  priceText: { color: '#fff', fontSize: 12 },
+  productDetails: { marginTop: 10 },
+  detailText: { fontSize: 12, color: '#555' },
   bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', backgroundColor: '#000', paddingVertical: 10, height: 60, borderTopLeftRadius: 15, borderTopRightRadius: 15 },
   cartIconContainer: {
     position: 'absolute',
@@ -231,5 +277,3 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
-
-

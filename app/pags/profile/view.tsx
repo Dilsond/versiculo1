@@ -1,38 +1,112 @@
-import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useProducts } from '../home/dp';
+import React, { useState, useRef, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Config from '@/app/Config';
+import { fetchWithToken } from '../../api';
+
+
+interface UserData {
+  id: number;
+  nome: string;
+  email: string;
+  numero_telefone: string;
+  endereco: string;
+  status: string;
+  foto: string;
+}
 
 const PerfilScreen = () => {
   const navigation = useNavigation();
   const { products } = useProducts();
   const [activeTab, setActiveTab] = useState('meusProdutos');
+  const baseUrl = Config.getApiUrl();
+
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [profileImage, setProfileImage] = useState(null);
+  const [produtos, setProdutos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const [produtoNome, setProdutoNome] = useState('');
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const asyncdata = await AsyncStorage.getItem('userData');
+      if (asyncdata) {
+        const userData = JSON.parse(asyncdata);
+        setUserData(userData);
+
+        if (userData.profile_image) {
+          setProfileImage(`${baseUrl}${userData.profile_image}`);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    if (!userData || !userData.id) return;
+
+    const fetchUserProducts = async () => {
+      setLoading(true);
+      try {
+        const queryParams = new URLSearchParams({
+          produto_nome_search: produtoNome,
+        });
+
+        const response = await fetchWithToken(`${baseUrl}api/produtos/usuario/${userData?.id}/?${queryParams}`);
+        if (!response.ok) {
+          throw new Error('Erro ao buscar produtos do usuário');
+        }
+
+        const data = await response.json();
+        setProdutos(data.produtos || []);
+      } catch (err) {
+        setError('Erro ao buscar produtos.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProducts();
+  }, [produtoNome, userData]);
+
+  const renderProduct = ({ item }) => (
+    <View style={styles.productCard}>
+      <View style={styles.cardHeader}>
+        <TouchableOpacity onPress={() => navigation.navigate('ProdutoUpdateForm', { produto: item })}>
+          <Text style={styles.atualizar}>Editar</Text>
+        </TouchableOpacity>
+        <Text style={styles.cardOwner}>{item.nome}</Text>
+        <Text style={styles.cardTime}>{item.data_publicacao}</Text>
+      </View>
+      {item.imagens && item.imagens.length > 0 ? (
+        <Image
+          key={item.imagens[0].id}
+          source={{ uri: baseUrl + item.imagens[0].imagem }}
+          style={styles.productImage}
+        />
+      ) : (
+        <Image
+          source={require('../../../assets/images/12345.jpg')}
+          style={styles.productImage}
+        />
+      )}
+      <View style={styles.priceBadge}>
+        <Text style={styles.priceText}>{item.preco} KZ</Text>
+      </View>
+      <View style={styles.productDetails}>
+        <Text style={styles.detailText}>{`${item.categoria.nome}`}</Text>
+        <Text style={styles.detailText}>{`${item.condicao}`}</Text>
+      </View>
+    </View>
+  );
 
   const savedProducts = products.filter((product) => product.bookmarked);
-
-  const renderProduct = ({ item }) => {
-    const imageUri = item.image && Image.resolveAssetSource(item.image).uri;
-
-    return (
-      <TouchableOpacity 
-        style={styles.productItem}
-        onPress={() => navigation.navigate('DetalheProdutoScreen', { productId: item.id })}
-      >
-        {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.productImage} />
-        ) : (
-          <View style={[styles.productImage, styles.placeholderImage]}>
-            <Text style={styles.placeholderText}>No Image</Text>
-          </View>
-        )}
-        <View style={styles.productInfo}>
-          <Text style={styles.productName}>{item.name}</Text>
-          <Text style={styles.productPrice}>{item.price}</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
 
   return (
     <View style={styles.container}>
@@ -48,15 +122,15 @@ const PerfilScreen = () => {
 
       <View style={styles.profileSection}>
         <View style={styles.infoSection}>
-          <Text style={styles.profileName}>Dilsond...</Text>
-          <Text style={styles.profileHandle}>Vamos ser felizes!</Text>
+          <Text style={styles.profileName}>{userData?.nome}</Text>
+          <Text style={styles.profileHandle}>{userData?.email}!</Text>
           <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('EditarUser')}>
             <Text style={styles.buttonText}>Editar perfil</Text>
           </TouchableOpacity>
         </View>
 
         <Image
-          source={require('../../../assets/images/WhatsApp Image 2024-09-29 at 10.14.59.jpeg')}
+          source={{ uri: userData?.foto ? baseUrl + userData.foto : 'defaultAvatarUrl' }}
           style={styles.profileImage}
         />
       </View>
@@ -78,7 +152,7 @@ const PerfilScreen = () => {
       </View>
 
       <FlatList
-        data={activeTab === 'meusProdutos' ? products : savedProducts}
+        data={activeTab === 'meusProdutos' ? produtos : savedProducts}
         renderItem={renderProduct}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.productList}
@@ -166,8 +240,8 @@ const styles = StyleSheet.create({
   productList: {
     padding: 10,
   },
-  productItem: {
-    flexDirection: 'row',
+  productCard: {
+    flexDirection: 'column',
     marginBottom: 15,
     backgroundColor: '#fff',
     padding: 10,
@@ -178,31 +252,43 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
   },
-  productImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 10,
-    marginRight: 10,
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  placeholderImage: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#ccc',
+  atualizar: {
+    color: '#0066cc',
   },
-  placeholderText: {
-    color: '#888',
+  cardOwner: {
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  cardTime: {
     fontSize: 12,
+    color: '#888',
   },
-  productInfo: {
-    flex: 1,
-    justifyContent: 'center',
+  productImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 10,
+    marginVertical: 10,
   },
-  productName: {
+  priceBadge: {
+    backgroundColor: '#f8f8f8',
+    padding: 5,
+    borderRadius: 5,
+    marginVertical: 10,
+  },
+  priceText: {
     fontSize: 16,
     fontWeight: 'bold',
   },
-  productPrice: {
-    fontSize: 14,
+  productDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  detailText: {
+    fontSize: 12,
     color: '#888',
   },
   emptyText: {

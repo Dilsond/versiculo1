@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, ActivityIndicator, Switch } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Config from '../../Config';
+import { fetchWithToken } from '../../api'; 
 
 const ConfigScreen = () => {
   const navigation = useNavigation();
   const [isModalVisible, setModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isNotificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [userData, setUserData] = useState(null);
 
   const toggleNotifications = () => {
     setNotificationsEnabled(!isNotificationsEnabled);
@@ -22,14 +26,71 @@ const ConfigScreen = () => {
     { icon: <Ionicons name="information-circle-outline" size={24} color="black" />, label: 'Sobre', onPress: () => navigation.navigate('') },
   ];
 
+  const baseUrl = Config.getApiUrl(); 
+  const logoutDevice = async () => {
+    const token= await AsyncStorage.getItem('accessTokenFirebase');
+    try {
+      const response = await fetchWithToken(`${baseUrl}api/dispositivo-status/atualizar/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer YOUR_ACCESS_TOKEN', 
+        },
+        body: JSON.stringify({
+          token:token,
+          usuario_id: userData?.id,  
+        }),
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        // Sucesso: Dispositivo deslogado com sucesso
+        console.log('Sucesso', data.detail);
+      } else {
+        // Erro: Mensagem de erro recebida da API
+        console.log('Erro', data.detail || 'Ocorreu um erro ao tentar deslogar o dispositivo');
+      }
+    } catch (error) {
+      // Erro de conexão ou outro erro inesperado
+      console.error('Erro ao enviar a requisição:', error);
+      console.log('Erro', 'Erro de conexão. Tente novamente mais tarde.');
+    }
+  }
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const asyncdata = await AsyncStorage.getItem('userData');
+      if (asyncdata) {
+        const userData = JSON.parse(asyncdata);
+        setUserData(userData);
+      }
+    };
+    fetchUserData();
+
+  }, []);
+  
   const handleLogout = async () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      console.log('Usuário se bicou');
-      // navigation.navigate('Login');
-      setModalVisible(false);
-      setIsLoading(false);
-    }, 1500);
+
+    const token = await AsyncStorage.getItem('refreshToken');
+    console.log(token);
+    // Opcional: Notifica o backend para invalidar o token
+    // if (token) {
+    //   await fetchWithToken(`${baseUrl}api/logout/`, {
+    //     method: 'POST',
+    //     headers: {
+    //       'Authorization': `Bearer ${token}`,
+    //       'Content-Type': 'application/json',
+    //     },
+    //   });
+    // }
+    
+    await AsyncStorage.removeItem('token');
+    // mandarProdutoApi();
+     logoutDevice();
+    await AsyncStorage.removeItem('userData');
+    navigation.replace("LoginScreen");
+    
+    
   };
 
   return (

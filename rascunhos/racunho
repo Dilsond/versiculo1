@@ -1,0 +1,795 @@
+import React from 'react';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
+
+const HomeScreen = () => {
+    return (
+        <ScrollView style={styles.container}>
+            {/* Header */}
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>E-Commerce</Text>
+                <View style={styles.navLinks}>
+                    <Text style={styles.navLink}>Categories</Text>
+                    <Text style={styles.navLink}>Products</Text>
+                    <Text style={styles.navLink}>Contact</Text>
+                </View>
+            </View>
+
+            {/* Hero Section */}
+            <View style={styles.hero}>
+                <Text style={styles.heroTitle}>Welcome to Our Store</Text>
+                <Text style={styles.heroSubtitle}>Find the best products at unbeatable prices.</Text>
+            </View>
+
+            {/* Categories Section */}
+            <View style={styles.categories}>
+                <View style={styles.category}>
+                    <Image source={{ uri: 'https://via.placeholder.com/300x200' }} style={styles.categoryImage} />
+                    <Text style={styles.categoryTitle}>Category 1</Text>
+                </View>
+                <View style={styles.category}>
+                    <Image source={{ uri: 'https://via.placeholder.com/300x200' }} style={styles.categoryImage} />
+                    <Text style={styles.categoryTitle}>Category 2</Text>
+                </View>
+                <View style={styles.category}>
+                    <Image source={{ uri: 'https://via.placeholder.com/300x200' }} style={styles.categoryImage} />
+                    <Text style={styles.categoryTitle}>Category 3</Text>
+                </View>
+            </View>
+
+            {/* Products Section */}
+            <View style={styles.products}>
+                {[1, 2, 3, 4].map((item) => (
+                    <View key={item} style={styles.product}>
+                        <Image source={{ uri: 'https://via.placeholder.com/200' }} style={styles.productImage} />
+                        <Text style={styles.productTitle}>Product {item}</Text>
+                        <Text style={styles.productPrice}>${item * 10 + 9.99}</Text>
+                        <TouchableOpacity style={styles.productButton}>
+                            <Text style={styles.productButtonText}>Add to Cart</Text>
+                        </TouchableOpacity>
+                    </View>
+                ))}
+            </View>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+                <Text style={styles.footerText}>© 2024 E-Commerce. All rights reserved.</Text>
+            </View>
+        </ScrollView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#333',
+        padding: 15,
+    },
+    headerTitle: {
+        color: '#fff',
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+    navLinks: {
+        flexDirection: 'row',
+    },
+    navLink: {
+        color: '#fff',
+        marginHorizontal: 10,
+    },
+    hero: {
+        height: 200,
+        backgroundColor: '#333',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    heroTitle: {
+        color: '#fff',
+        fontSize: 24,
+        fontWeight: 'bold',
+    },
+    heroSubtitle: {
+        color: '#fff',
+        fontSize: 16,
+    },
+    categories: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginVertical: 20,
+    },
+    category: {
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        padding: 10,
+        borderRadius: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    categoryImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 5,
+    },
+    categoryTitle: {
+        marginTop: 10,
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    products: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-around',
+    },
+    product: {
+        backgroundColor: '#fff',
+        borderRadius: 5,
+        padding: 10,
+        margin: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        elevation: 3,
+        alignItems: 'center',
+        width: 150,
+    },
+    productImage: {
+        width: 120,
+        height: 120,
+        borderRadius: 5,
+    },
+    productTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginVertical: 5,
+    },
+    productPrice: {
+        fontSize: 14,
+        color: '#555',
+    },
+    productButton: {
+        backgroundColor: '#333',
+        padding: 10,
+        borderRadius: 5,
+        marginTop: 10,
+    },
+    productButtonText: {
+        color: '#fff',
+    },
+    footer: {
+        backgroundColor: '#333',
+        padding: 10,
+        alignItems: 'center',
+    },
+    footerText: {
+        color: '#fff',
+    },
+});
+
+export default HomeScreen;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// principal 
+
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert,KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import { useForm, Controller } from 'react-hook-form';
+import React, { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Config from '../../Config';
+import jwt_decode, { jwtDecode } from 'jwt-decode';
+
+interface UserData {
+  nome: string;
+  email: string;
+  numero_telefone: string;
+  endereco: string;
+  status: string;
+}
+const LoginScreen = () => {
+  const navigation = useNavigation();
+  const [loading, setLoading] = React.useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [lastActiveTime, setLastActiveTime] = useState<number>(Date.now());
+  const baseUrl = Config.getApiUrl();
+  const { control } = useForm();
+  const { formState: { errors } } = useForm();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const storedUserData = await AsyncStorage.getItem('userData');
+
+        if (storedUserData) {
+          navigation.replace("HomeScreen");
+        }
+      } catch (error) {
+        console.error('Erro ao recuperar dados:', error);
+
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+
+
+  const resetInactivityTimer = () => {
+    setLastActiveTime(Date.now());
+  };
+
+  const handleLogin = async () => {
+    setLoading(true);
+
+    try {
+        const response = await fetch(`${baseUrl}api/token/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                username: username,
+                password: password,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            const decodedToken = jwtDecode(data.access);
+            console.log("Token decodificado:", decodedToken);
+            
+            if (decodedToken.is_usuario) {
+                setToken(data.access);
+                setIsLoggedIn(true);
+
+                await AsyncStorage.setItem('accessToken', data.access);
+                await AsyncStorage.setItem('refreshToken', data.refresh);
+
+                fetchUserData(data.access);
+                navigation.navigate("HomeScreen");
+            } else {
+                Alert.alert('Erro', 'Usuário não autorizado.');
+                navigation.navigate('LoginScreen');
+            }
+        } else {
+            Alert.alert('Credenciais Inválidas', data.detail || 'Insira os dados corretamente.');
+        }
+    } catch (error) {
+        console.error('Erro ao realizar login:', error);
+        Alert.alert('Erro de conexão', 'Não foi possível conectar ao servidor.');
+    } finally {
+        setLoading(false);
+    }
+};
+
+
+  const fetchUserData = async (token: string) => {
+    const maxRetries = 5;
+    let attempts = 0;
+    let success = false;
+    let userData = null;
+
+    while (attempts < maxRetries && !success) {
+      try {
+        const response = await fetch(`${baseUrl}api/user`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          userData = data;
+          success = true;
+        } else {
+          throw new Error('Erro ao buscar dados do usuário');
+        }
+      } catch (error) {
+        attempts += 1;
+        console.error(`Tentativa ${attempts} falhou:`, error);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+    }
+
+    if (success) {
+      setUserData(userData as UserData);
+      await AsyncStorage.setItem('userData', JSON.stringify(userData));
+    } else {
+      Alert.alert('Erro ao buscar dados', 'Não foi possível buscar os dados do usuário após várias tentativas.');
+    }
+  };
+  
+
+  return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <LinearGradient colors={['#2e5764', '#73909a', '#2e5764']} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={styles.container}>
+          <Image source={require('../../../assets/images/DD.png')} style={styles.logoImage} />
+          <Text style={styles.text}>Enter your username and pass</Text>
+
+          <Text style={styles.user}>Username</Text>
+          <Controller
+            control={control}
+            name="email"
+            defaultValue=""
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={styles.inputuser}
+                placeholder="eg. Dilsond"
+                placeholderTextColor="#888"
+                onBlur={onBlur}
+                onChangeText={(text) => setUsername(text)} // Atualiza o estado                value={username}
+                editable={!loading}
+              />
+            )}
+          />
+
+          <Text style={styles.pass}>Password</Text>
+          <Controller
+            control={control}
+            name="password"
+            defaultValue=""
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={styles.inputpass}
+                placeholder="***********"
+                placeholderTextColor="#888"
+                secureTextEntry
+                onBlur={onBlur}
+                onChangeText={(text) => setPassword(text)} // Atualiza o estado
+                value={password}
+                editable={!loading}
+              />
+            )}
+          />
+
+          <TouchableOpacity>
+            <Text style={styles.forgot} onPress={() => navigation.navigate('AlterarPasse')}>Esqueceu a senha?</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#ffffff" /> 
+            ) : (
+              <Text style={styles.buttonText}>Login     »</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.signUp}
+            onPress={() => navigation.navigate('SignUpScreen')}
+          >
+            <Text style={styles.signUpText}>Não tem uma conta?</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  logoImage: {
+    width: 200,
+    height: 120,
+    marginBottom: 90,
+    marginTop: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
+    marginBottom: 120,
+    fontSize: 20,
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  user: {
+    color: 'white',
+    marginLeft: 40,
+  },
+  inputuser: {
+    width: '80%',
+    height: 50,
+    backgroundColor: '#2e5764',
+    color: 'white',
+    paddingHorizontal: 10,
+    marginVertical: 10,
+    borderRadius: 8,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    marginBottom: 20,
+  },
+  pass: {
+    color: 'white',
+    marginLeft: 40,
+  },
+  inputpass: {
+    width: '80%',
+    height: 50,
+    backgroundColor: '#2e5764',
+    color: 'white',
+    paddingHorizontal: 10,
+    marginVertical: 10,
+    borderRadius: 8,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+  forgot: {
+    color: 'white',
+    fontSize: 13,
+    textAlign: 'right',
+    marginRight: 40,
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  button: {
+    marginTop: 20,
+    padding: 15,
+    width: 200,
+    borderWidth: 2,
+    borderColor: '#fff',
+    borderRadius: 17,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  signUp: {
+    marginTop: 110,
+  },
+  signUpText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+});
+
+export default LoginScreen;
+
+
+
+
+
+// dp 
+
+import React, { createContext, useState, useContext } from 'react';
+
+const ProductsContext = createContext();
+
+export const ProductsProvider = ({ children }) => {
+  const [products, setProducts] = useState([
+    { id: '1', name: 'Carro - FIAT 360', price: '$25.99', image: require('../../../assets/images/carros-economicos-1.jpeg') , favorite: false, bookmarked: false },
+    { id: '2', name: 'Telefone Antigo', price: '$255.99', image: require('../../../assets/images/615vPLc0dDL._AC_UF1000,1000_QL80_.jpg') , favorite: false, bookmarked: false },
+    { id: '3', name: 'Auriculares sem fio', price: '$71.99', image: require('../../../assets/images/aw220226.png') , favorite: false, bookmarked: false },
+    { id: '4', name: 'Telefone de Escritório', price: '$884.99', image: require('../../../assets/images/d303884e6128dfb0bd1d2a8fa0b21721.webp'), favorite: false, bookmarked: false },
+    { id: '5', name: 'Telefone de Botão', price: '$345.99', image: require('../../../assets/images/D_NQ_NP_871327-MLB52614031027_112022-O.webp'), favorite: false, bookmarked: false },
+    { id: '6', name: 'Computador HP', price: '$755.99', image: require('../../../assets/images/surface.webp'), favorite: false, bookmarked: false },
+    { id: '7', name: 'Iphone 13pro Max', price: '$255.99', image: require('../../../assets/images/https-s3.amazonaws.com-allied.alliedmktg.com-img-apple-iPhone-2013-iPhone-2013-20Pro-TCDAP872-1.jpg') , favorite: false, bookmarked: false },
+    { id: '8', name: 'Carro Peugeot', price: '$44.99', image: require('../../../assets/images/peugeot-e-208.webp') , favorite: false, bookmarked: false },
+    { id: '9', name: 'Auscutadores', price: '$878.99', image: require('../../../assets/images/z_0_nb224556_AURICULARES-BLUETOOTH-QUALITYSOUND.jpg') , favorite: false, bookmarked: false },
+
+  ]);
+
+  const toggleFavorite = (id) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((product) =>
+        product.id === id
+          ? { ...product, favorite: !product.favorite }
+          : product
+      )
+    );
+  };
+
+  const toggleBookmark = (id) => {
+    setProducts((prevProducts) =>
+      prevProducts.map((product) =>
+        product.id === id
+          ? { ...product, bookmarked: !product.bookmarked }
+          : product
+      )
+    );
+  };
+
+  return (
+    <ProductsContext.Provider value={{ products, toggleFavorite, toggleBookmark }}>
+      {children}
+    </ProductsContext.Provider>
+  );
+};
+
+
+export const useProducts = () => useContext(ProductsContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+// secundário
+
+
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Animated, Image, Dimensions } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { useProducts } from './dp';
+import useCart from './yh';  
+
+const { width } = Dimensions.get('window');
+
+const HomeScreen = () => {
+  const navigation = useNavigation();
+  const [isFooterVisible, setIsFooterVisible] = useState(true);
+  const lastOffsetY = useRef(0);
+  const footerAnimation = useRef(new Animated.Value(1)).current;
+  const { products, toggleFavorite, toggleBookmark } = useProducts();
+  const { cartItems, toggleCart } = useCart();
+
+  const banners = [
+    {
+      image: require('../../../assets/images/surface.webp'),
+      productId: '6',
+    },
+    {
+      image: require('../../../assets/images/z_0_nb224556_AURICULARES-BLUETOOTH-QUALITYSOUND.jpg'),
+      productId: '9',
+    },
+    {
+      image: require('../../../assets/images/carros-economicos-1.jpeg'),
+      productId: '1',
+    },
+  ];
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const flatListRef = useRef(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % banners.length);
+      flatListRef.current?.scrollToIndex({ index: (currentIndex + 1) % banners.length, animated: true });
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [currentIndex]);
+
+  const handleScroll = (event) => {
+    const currentOffsetY = event.nativeEvent.contentOffset.y;
+    const isScrollingDown = currentOffsetY > lastOffsetY.current;
+
+    if (isScrollingDown && isFooterVisible) {
+      setIsFooterVisible(false);
+      Animated.timing(footerAnimation, {
+        toValue: 0,
+        duration: 100,
+        useNativeDriver: true,
+      }).start();
+    } else if (!isScrollingDown && !isFooterVisible) {
+      setIsFooterVisible(true);
+      Animated.timing(footerAnimation, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+
+    lastOffsetY.current = currentOffsetY;
+  };
+
+  const renderHeader = () => (
+    <>
+      <View style={styles.header}>
+        <Text style={styles.headertext}>Explore</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('PerfilScreen')}>
+          <Image
+            source={require('../../../assets/images/WhatsApp Image 2024-09-29 at 10.14.59.jpeg')}
+            style={styles.avatar}
+          />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.bannerContainer}>
+        <FlatList
+          ref={flatListRef}
+          data={banners}
+          keyExtractor={(item, index) => index.toString()}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => navigation.navigate('DetalheProdutoScreen', { productId: item.productId })}>
+              <Image source={item.image} style={styles.bannerImage} />
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+      <FlatList
+        data={['Todos', 'Computador', 'Carros', 'Telefones', 'Acessórios']}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={({ item }) => (
+          <TouchableOpacity style={styles.categoryButton}>
+            <Text style={styles.categoryText}>{item}</Text>
+          </TouchableOpacity>
+        )}
+        contentContainerStyle={styles.categories}
+      />
+      <View style={styles.productsSection}>
+        <Text style={styles.sectionTitle}>Produtos Populares</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('VerTodosScreen')}>
+          <Text style={styles.viewAll}>Ver todos</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={products}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={renderHeader}
+        renderItem={({ item }) => {
+          const isInCart = cartItems.some((cartItem) => cartItem.id == item.id);
+          return (
+            <View style={styles.productCard}>
+              <TouchableOpacity onPress={() => navigation.navigate('DetalheProdutoScreen', { productId: item.id })}>
+                <Image source={item.image} style={styles.productImage} />
+              </TouchableOpacity>
+              <Text style={styles.productName}>{item.name}</Text>
+              <Text style={styles.productPrice}>{item.price}</Text>
+              <View style={styles.iconContainer}>
+                <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
+                  <MaterialCommunityIcons
+                    name={item.favorite ? 'heart' : 'heart-outline'}
+                    size={24}
+                    color={item.favorite ? 'black' : 'black'}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => toggleBookmark(item.id)}>
+                  <MaterialCommunityIcons
+                    name={item.bookmarked ? 'bookmark' : 'bookmark-outline'}
+                    size={24}
+                    color={item.bookmarked ? 'black' : 'black'}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => toggleCart(item)}>
+                  <MaterialCommunityIcons
+                    name={isInCart ? 'cart' : 'cart-plus'}
+                    size={24}
+                    color={isInCart ? 'black' : 'black'}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        }}
+      />
+      {cartItems.length > 0 && (
+        <TouchableOpacity
+          style={styles.cartIconContainer}
+          onPress={() => navigation.navigate('CarrinhoScreen')}
+        >
+          <MaterialCommunityIcons name="cart" size={30} color="white" />
+        </TouchableOpacity>
+      )}
+      <Animated.View
+        style={[
+          styles.bottomNav,
+          {
+            transform: [
+              { translateY: footerAnimation.interpolate({ inputRange: [0, 1], outputRange: [200, 0] }) },
+            ],
+          },
+        ]}
+      >
+        <TouchableOpacity onPress={() => navigation.navigate('HomeScreen')}>
+          <MaterialCommunityIcons name="home" size={24} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity>
+          <MaterialCommunityIcons name="plus" size={24} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('VerTodosScreen')}>
+          <MaterialCommunityIcons name="magnify" size={24} color="white" />
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: '#ffffff',
+  },
+  userContainer: { flexDirection: 'row', alignItems: 'center' },
+  avatar: { width: 40, height: 40, borderRadius: 20 },
+  headertext: { fontSize: 24, fontWeight: 'bold' },
+  bannerContainer: { height: 200, marginBottom: 20 },
+  bannerImage: { width, height: 200 },
+  categories: { marginHorizontal: 20, marginBottom: 10 },
+  categoryButton: { backgroundColor: '#fff', padding: 20, borderRadius: 20, marginRight: 10 },
+  categoryText: { color: '#000', fontWeight: 'bold' },
+  productsSection: { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 20, marginVertical: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold' },
+  viewAll: { color: 'gray', fontSize: 14 },
+  productCard: { flex: 1, margin: 10, backgroundColor: '#fff', borderRadius: 10, padding: 10, alignItems: 'center' },
+  productImage: { width: 150, height: 150, borderRadius: 10, marginBottom: 10 },
+  productName: { fontSize: 14, fontWeight: 'bold', textAlign: 'center' },
+  productPrice: { fontSize: 12, color: '#555' },
+  iconContainer: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10 },
+  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', backgroundColor: '#000', paddingVertical: 10, height: 60, borderTopLeftRadius: 15, borderTopRightRadius: 15 },
+  cartIconContainer: {
+    position: 'absolute',
+    bottom: 80,
+    right: 20,
+    backgroundColor: '#000',
+    padding: 10,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+});
+
+export default HomeScreen;
