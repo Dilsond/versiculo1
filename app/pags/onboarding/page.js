@@ -59,6 +59,7 @@ const home = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#9e9e9e'
     },
     logoImage: {
         width: 250,

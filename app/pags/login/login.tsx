@@ -142,7 +142,7 @@ const LoginScreen = () => {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={styles.container}>
           <Image source={require('../../../assets/images/DD.png')} style={styles.logoImage} />
-          <Text style={styles.text}>Enter your username and pass</Text>
+          <Text style={styles.text}>Faça login na sua conta</Text>
 
           <Text style={styles.user}>Username</Text>
           <Controller
@@ -155,13 +155,13 @@ const LoginScreen = () => {
                 placeholder="eg. Dilsond"
                 placeholderTextColor="#888"
                 onBlur={onBlur}
-                onChangeText={(text) => setUsername(text)} // Atualiza o estado                value={username}
+                onChangeText={(text) => setUsername(text)} 
                 editable={!loading}
               />
             )}
           />
 
-          <Text style={styles.pass}>Password</Text>
+          <Text style={styles.pass}>Palavra-Passe</Text>
           <Controller
             control={control}
             name="password"
@@ -173,7 +173,7 @@ const LoginScreen = () => {
                 placeholderTextColor="#888"
                 secureTextEntry
                 onBlur={onBlur}
-                onChangeText={(text) => setPassword(text)} // Atualiza o estado
+                onChangeText={(text) => setPassword(text)} 
                 value={password}
                 editable={!loading}
               />
@@ -222,8 +222,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   text: {
-    marginBottom: 120,
-    fontSize: 20,
+    marginBottom: 110,
+    fontSize: 25,
     color: 'black',
     fontWeight: 'bold',
     textAlign: 'center',
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     width: '80%',
     height: 50,
     backgroundColor: 'black',
-    color: '#fff',
+    color: '#9e9e9e',
     paddingHorizontal: 10,
     marginVertical: 10,
     borderRadius: 8,
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     width: '80%',
     height: 50,
     backgroundColor: 'black',
-    color: '#fff',
+    color: '#9e9e9e',
     paddingHorizontal: 10,
     marginVertical: 10,
     borderRadius: 8,
